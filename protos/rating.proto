@@ -1,0 +1,46 @@
+syntax = "proto3";
+package rating;
+
+service RatingService {
+  rpc SubmitRating (SubmitRatingRequest) returns (SubmitRatingResponse);
+  rpc GetTutorRatingSummary (TutorRequest) returns (TutorRatingSummary);
+  rpc GetTutorRatings (TutorRequest) returns (TutorRatingsResponse);
+}
+
+message SubmitRatingRequest {
+  string student_username = 1;
+  string tutor_username = 2;
+  string appointment_id = 3; // optional but recommended
+  int32 rating = 4; // 1..5
+  string comment = 5; // optional
+  string timestamp = 6; // optional ISO-8601
+}
+
+message SubmitRatingResponse {
+  bool ok = 1;
+  string message = 2;
+}
+
+message TutorRequest { string tutor_username = 1; }
+
+message TutorRatingSummary {
+  bool ok = 1;
+  string message = 2;
+  string tutor_username = 3;
+  double average_rating = 4;
+  int32 rating_count = 5;
+}
+
+message TutorRatingItem {
+  string student_username = 1;
+  string appointment_id = 2;
+  int32 rating = 3;
+  string comment = 4;
+  string timestamp = 5;
+}
+
+message TutorRatingsResponse {
+  bool ok = 1;
+  string message = 2;
+  repeated TutorRatingItem items = 3;
+}

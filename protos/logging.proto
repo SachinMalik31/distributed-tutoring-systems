@@ -1,0 +1,31 @@
+syntax = "proto3";
+package logging;
+
+service LoggingService {
+  rpc LogEvent (LogEventRequest) returns (LogEventResponse);
+  rpc GetStudentLogs (GetStudentLogsRequest) returns (LogsResponse);
+  rpc GetTutorLogs (GetTutorLogsRequest) returns (LogsResponse);
+}
+
+message LogEventRequest {
+  string appointment_id = 1;
+  string actor_type = 2; // "STUDENT" or "TUTOR" or "SYSTEM"
+  string actor_id = 3;   // student_id or tutor_id
+  string event_type = 4; // "BOOKED" | "CANCELED" | "CHANGED"
+  string details = 5;
+  string timestamp = 6;  // ISO-8601
+}
+
+message LogEventResponse { bool ok = 1; string message = 2; }
+
+message GetStudentLogsRequest { string student_id = 1; }
+message GetTutorLogsRequest { string tutor_id = 1; }
+
+message LogItem {
+  string appointment_id = 1;
+  string event_type = 2;
+  string details = 3;
+  string timestamp = 4;
+}
+
+message LogsResponse { repeated LogItem items = 1; }

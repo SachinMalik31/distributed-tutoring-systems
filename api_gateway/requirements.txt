@@ -1,0 +1,6 @@
+fastapi==0.110.0
+uvicorn==0.27.1
+grpcio==1.62.2
+grpcio-tools==1.62.2
+protobuf>=4.21.0
+python-dateutil==2.9.0.post0

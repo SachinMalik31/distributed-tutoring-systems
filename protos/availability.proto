@@ -1,0 +1,89 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+package availability;
+
+// Service allows tutors to set their availabile times
+service SetAvailability {
+    // Tutors add availability
+    rpc AddTimeSlot (AddTimeSlotRequest) returns (SlotAvailabilityReply) {}
+
+    // Tutors remove availability
+    rpc RemoveTimeSlot (RemoveTimeSlotRequest) returns (SlotAvailabilityReply) {}
+
+    // List all tutors that have available time slots
+    rpc ListAllTutorsWithTimeSlots (google.protobuf.Empty) returns (ListAllTutorsWithTimeSlotsReply) {}
+
+    // List every time slot available
+    rpc ListAllTimeSlots (google.protobuf.Empty) returns (ListTimeSlotsReply) {}
+
+    // List all slots that are currently open for a particular tutor
+    rpc ListTutorTimeSlots (ListTutorTimeSlotsRequest) returns (ListTimeSlotsReply) {}
+
+    // Update booked status based on create (booking) service
+    rpc UpdateTimeSlotStatus (UpdateTimeSlotStatusRequest) returns (UpdateTimeSlotStatusReply) {}
+
+    // Obtain time slot for specified slot id
+    rpc GetSlot (GetSlotRequest) returns (GetSlotReply) {}
+
+}
+
+message AddTimeSlotRequest {
+    string token = 1;
+    string start_time = 2;
+    string end_time = 3;
+}
+
+message RemoveTimeSlotRequest {
+    string token = 1;
+    int64 slot_id = 2;
+}
+
+message SlotAvailabilityReply {
+    bool check = 1;
+    string message = 2;
+}
+
+message Slots {
+    int64 id = 1;
+    string tutor_username = 2;
+    string start_time = 3;
+    string end_time = 4;
+    string is_booked = 5;
+}
+
+message ListAllTutorsWithTimeSlotsReply {
+    repeated string tutor_username = 1;
+}
+
+message ListTimeSlotsReply {
+    bool check = 1;
+    string message = 2;
+    repeated Slots slot = 3;
+}
+
+
+message ListTutorTimeSlotsRequest {
+    string tutor_username = 1;
+}
+
+message UpdateTimeSlotStatusRequest {
+    int64 old_slot_id = 1;
+    int64 new_slot_id = 2;
+    string is_booked = 3;
+}
+
+message UpdateTimeSlotStatusReply {
+    bool check = 1;
+    string message = 2;
+}
+
+message GetSlotRequest {
+    int64 slot_id = 1;
+}
+
+message GetSlotReply {
+    bool check = 1;
+    string message = 2;
+    Slots slot = 3;
+}

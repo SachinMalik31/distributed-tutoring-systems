@@ -1,0 +1,23 @@
+syntax = "proto3";
+package create;
+
+service CreateAppointmentService {
+  rpc CreateAppointment (CreateAppointmentRequest) returns (AppointmentResponse);
+}
+
+message CreateAppointmentRequest {
+  string token = 1;
+  int64 slot_id = 2;
+  string tutor_username = 3;
+}
+
+message AppointmentResponse {
+  string appointment_id = 1;
+  string student_username = 2;
+  string tutor_username = 3;
+  string start_time = 4;
+  string end_time = 5;
+  string status = 6; // BOOKED / CANCELED / CHANGED
+  int64 slot_id = 7;
+  string message = 8;
+}

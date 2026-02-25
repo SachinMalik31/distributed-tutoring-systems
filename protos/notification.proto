@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package notification;
+
+// Notify users and tutors about changes in booking
+service Notifier {
+    // Sends booking confirmation email to user and tutor
+    rpc SendBookingConfirmation(SendBookingConfirmationRequest) returns (NotificationReply) {}
+
+    // Sends notice to user and tutor that appointment was cancelled
+    rpc SendCancellationNotice(SendCancellationNoticeRequest) returns (NotificationReply) {}
+}
+
+message SendBookingConfirmationRequest {
+  string user_email = 1;
+  string tutor_email   = 2;
+  string user_username = 3;
+  string tutor_username   = 4;
+  string start_time = 5;  
+  string end_time   = 6;  
+  string appointment_id = 7;
+}
+
+message SendCancellationNoticeRequest {
+  string user_email = 1;
+  string tutor_email   = 2;
+  string user_username = 3;
+  string tutor_username   = 4;
+  string start_time = 5;
+  string end_time   = 6;
+  string appointment_id = 7;
+  string cancelled_by = 8; 
+}
+
+message NotificationReply {
+    bool check = 1;
+    string message = 2;
+}

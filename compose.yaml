@@ -1,0 +1,116 @@
+services:
+  auth:
+    build: 
+      context: .
+      dockerfile: authentication/Dockerfile
+    environment:
+      - DB_PATH=/data/users.db
+      - TUTOR_CODE=tutor1234
+    volumes:
+      - auth_data:/data
+    ports:
+      - "50051:50051"
+
+  avail:
+    build: 
+      context: .
+      dockerfile: availability/Dockerfile
+    environment:
+      - AVAIL_DB_PATH=/data/slots.db
+      - AUTH_ADDR=auth:50051
+    depends_on:
+      - auth
+    volumes:
+      - availability_data:/data
+    ports:
+      - "50052:50052"
+
+  create_service:
+    build:
+      context: .
+      dockerfile: create_service/Dockerfile
+    ports:
+      - "50053:50053"
+    environment:
+      - LOGGING_HOST=logging_service:50054
+      - APPT_DB_PATH=/data/appointments.db
+      - PYTHONUNBUFFERED=1
+      - AUTH_ADDR=auth:50051
+      - AVAIL_ADDR=avail:50052
+      - NOTIF_ADDR=notif:50056
+    volumes:
+      - apptdata:/data
+    depends_on:
+      - logging_service
+      - auth
+      - avail
+      - notif
+
+  logging_service:
+    build:
+      context: .
+      dockerfile: logging_service/Dockerfile
+    ports:
+      - "50054:50054"
+    volumes:
+      - logdata:/data
+
+
+  modify_service:
+    build:
+      context: .
+      dockerfile: modify_service/Dockerfile
+    ports:
+      - "50055:50055"
+    environment:
+      - LOGGING_HOST=logging_service:50054
+      - APPT_DB_PATH=/data/appointments.db
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - apptdata:/data
+    depends_on:
+      - logging_service
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"   # web inbox
+      - "1025:1025"   # smtp
+
+  notif:
+    build: 
+      context: .
+      dockerfile: notification/Dockerfile
+    environment:
+      - PORT=50056
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - SMTP_FROM=no-reply@tutoring.local
+    ports:
+      - "50056:50056"
+    depends_on:
+      - mailhog
+
+  rating_service:
+    build:
+      context: .
+      dockerfile: rating_service/Dockerfile
+    ports:
+      - "50057:50057"
+    environment:
+      - RATING_DB_PATH=/data/rating.db
+      - PYTHONUNBUFFERED=1
+      - AUTH_ADDR=auth:50051
+    volumes:
+      - ratingdata:/data
+    depends_on:
+      - auth
+
+      
+volumes:
+  auth_data:
+  availability_data:
+  logdata:
+  apptdata:
+  ratingdata:
+

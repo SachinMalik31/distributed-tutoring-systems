@@ -1,0 +1,30 @@
+syntax = "proto3";
+package modify;
+
+service ModifyAppointmentService {
+  rpc CancelAppointment (CancelAppointmentRequest) returns (AppointmentResponse);
+  rpc ChangeAppointment (ChangeAppointmentRequest) returns (AppointmentResponse);
+  rpc GetAppointment (GetAppointmentRequest) returns (AppointmentResponse);
+}
+
+message CancelAppointmentRequest { string appointment_id = 1; }
+
+message ChangeAppointmentRequest {
+  string appointment_id = 1;
+  int64 old_slot_id = 2;
+  int64 new_slot_id = 3;
+}
+
+message GetAppointmentRequest { string appointment_id = 1; }
+
+message AppointmentResponse {
+  string appointment_id = 1;
+  string student_username = 2;
+  string tutor_username = 3;
+  string start_time = 4;
+  string end_time = 5;
+  string status = 6; // BOOKED / CANCELED / CHANGED
+  string message = 7;
+  int64 slot_id = 8;
+}
+

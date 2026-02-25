@@ -1,0 +1,111 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+package authentication;
+
+// Service used to allow users to create an account for tutor booking service
+service Authenticator {
+    // Creates student profile from credentials
+    rpc RegisterUser (RegisterUserRequest) returns (AuthenticatorReply) {}
+
+    // Checks if user credentials exists
+    rpc Login (LoginRequest) returns (AuthenticatorReply) {}
+
+
+    // Checks user username and role based on provided token
+    rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenReply) {}
+
+    // Logs user our of system
+    rpc Logout (LogoutRequest) returns (LogoutReply) {}
+
+    // List all current users in the system (only tutors can see)
+    rpc ListAllUsers (google.protobuf.Empty) returns (ListAllUsersReply) {}
+
+    // Get user information from username
+    rpc GetUser (GetUserRequest) returns (GetUserReply) {}
+}
+
+
+enum Role{
+    NO_ROLE = 0;
+    STUDENT = 1;
+    TUTOR = 2;
+}
+
+// The request message containing student login information to register
+message RegisterUserRequest {
+    string firstname = 1;
+    string lastname = 2;
+    string username = 3;
+    string email = 4;
+    string password = 5;
+    Role role = 6;
+    string tutor_code = 7;
+}
+
+
+// The request message checking if login information exists
+message LoginRequest {
+    string username_or_email = 1;
+    string password = 2;
+}
+
+// The response message telling users if they registered or if their login is valid
+message AuthenticatorReply {
+    bool check = 1;
+    string message = 2;
+    string token = 3;
+    Role role = 4;
+}
+
+message ValidateTokenRequest {
+    string token = 1;
+}
+
+message ValidateTokenReply { 
+    bool check = 1;
+    string message = 2;
+    string firstname = 3;
+    string lastname = 4;
+    string username = 5;
+    string email = 6;
+    Role role = 7;
+}
+
+message LogoutRequest {
+    string token = 1;
+}
+
+message LogoutReply {
+    bool check = 1;
+    string message = 2;
+}
+
+message UserInfo {
+    string firstname = 1;
+    string lastname = 2;
+    string username = 3;
+    string email = 4;
+    Role role = 5;
+}
+
+message ListAllUsersRequest {
+    string token = 1;
+}
+
+message ListAllUsersReply {
+    repeated UserInfo user = 1;
+}
+
+message GetUserRequest {
+    string username = 1;
+}
+
+message GetUserReply {
+    bool check = 1;
+    string message = 2;
+    string firstname = 3;
+    string lastname = 4;
+    string email = 5;    
+    Role role = 6;
+}
