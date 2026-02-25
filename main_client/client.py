@@ -23,9 +23,10 @@ import sys
 import getpass
 from dataclasses import dataclass
 from typing import Optional
+from datetime import datetime  
 
 import grpc
-from google.protobuf import empty_pb2  # ✅ standard Empty()
+from google.protobuf import empty_pb2  
 
 # =========================
 # Auth
@@ -63,6 +64,51 @@ RATING_ADDR = "localhost:50057"
 # =========================
 # Helpers
 # =========================
+USER_FRIENDLY_FMT = "%Y-%m-%d %I:%M %p"  # e.g. 2026-02-25 12:30 PM
+
+
+def to_iso(dt_str: str) -> str:
+    """
+    Convert user-friendly datetime string -> ISO 8601 string (seconds precision).
+    Input:  '2026-02-25 12:30 PM'
+    Output: '2026-02-25T12:30:00'
+
+    Bonus: if user already enters ISO ('2026-02-25T12:30:00'), we accept it too.
+    """
+    s = dt_str.strip()
+    if not s:
+        raise ValueError("Empty datetime string")
+
+    # If user already gives ISO, accept it
+    try:
+        dt = datetime.fromisoformat(s)
+        return dt.isoformat(timespec="seconds")
+    except ValueError:
+        pass
+
+    # Otherwise parse friendly format
+    dt = datetime.strptime(s, USER_FRIENDLY_FMT)
+    return dt.isoformat(timespec="seconds")
+
+def fmt_time(s: str) -> str:
+    """
+    Convert ISO datetime string to user-friendly format for display.
+    If parsing fails, return original string (safe fallback).
+    """
+    if not s:
+        return ""
+    try:
+        dt = datetime.fromisoformat(s)
+        return dt.strftime(USER_FRIENDLY_FMT)
+    except ValueError:
+        return s
+
+
+def fmt_range(start_iso: str, end_iso: str) -> str:
+    """Return 'START -> END' in user-friendly format."""
+    return f"{fmt_time(start_iso)} -> {fmt_time(end_iso)}"
+
+
 def prompt(msg: str) -> str:
     return input(msg).strip()
 
@@ -145,7 +191,7 @@ class Client:
         lastname = prompt("Last name: ")
         username = prompt("Username: ")
         email = prompt("Email: ").lower()
-        password = prompt("Password: ")  # keep as-is (works for you)
+        password = prompt("Password: ")  
 
         req = auth_pb2.RegisterUserRequest(
             firstname=firstname,
@@ -170,7 +216,7 @@ class Client:
         lastname = prompt("Last name: ")
         username = prompt("Username: ")
         email = prompt("Email: ").lower()
-        password = prompt("Password: ")  # keep as-is (works for you)
+        password = prompt("Password: ") 
         tutor_code = prompt("Tutor code (if required by your server, else leave blank): ")
 
         req = auth_pb2.RegisterUserRequest(
@@ -193,7 +239,7 @@ class Client:
     def login(self) -> bool:
         print_header("Login")
         user = prompt("Username or email: ")
-        password = prompt("Password: ")  # keep as-is (works for you)
+        password = prompt("Password: ")  
 
         req = auth_pb2.LoginRequest(username_or_email=user, password=password)
         try:
@@ -253,7 +299,7 @@ class Client:
                 print("(none)")
                 return
             for s in resp.slot:
-                print(f"[{s.id}] tutor={s.tutor_username} {s.start_time} -> {s.end_time} booked={s.is_booked}")
+                print(f"[{s.id}] tutor={s.tutor_username} {fmt_range(s.start_time, s.end_time)} booked={s.is_booked}")
         except grpc.RpcError as e:
             show_rpc_error(e)
 
@@ -270,7 +316,7 @@ class Client:
                 print("(none)")
                 return
             for s in resp.slot:
-                print(f"[{s.id}] {s.start_time} -> {s.end_time} booked={s.is_booked}")
+                print(f"[{s.id}] {fmt_range(s.start_time, s.end_time)} booked={s.is_booked}")
         except grpc.RpcError as e:
             show_rpc_error(e)
 
@@ -278,9 +324,19 @@ class Client:
         if not self.session.token:
             print("Not logged in.")
             return
+
         print_header("Add Time Slot")
-        start_time = prompt("Start time (string/ISO): ")
-        end_time = prompt("End time (string/ISO): ")
+        print("Time Format: 2026-02-25 12:30 PM ")
+        start_input = prompt("Start time: ")
+        end_input = prompt("End time: ")
+
+        try:
+            start_time = to_iso(start_input)
+            end_time = to_iso(end_input)
+        except ValueError:
+            print("Invalid datetime format.")
+            print("Use: YYYY-MM-DD HH:MM AM/PM ")
+            return
 
         req = avail_pb2.AddTimeSlotRequest(
             token=self.session.token,
@@ -328,12 +384,12 @@ class Client:
             resp = self.create.CreateAppointment(req)
             print(resp.message)
 
-            #  Only print appointment fields on success
+            # Only print appointment fields on success
             if resp.appointment_id and (getattr(resp, "status", "") == "BOOKED" or resp.appointment_id != ""):
                 print(
                     f"appointment_id={resp.appointment_id}\n"
                     f"student={resp.student_username} tutor={resp.tutor_username}\n"
-                    f"{resp.start_time} -> {resp.end_time} status={resp.status}"
+                    f"{fmt_range(resp.start_time, resp.end_time)} status={resp.status}"
                 )
         except grpc.RpcError as e:
             show_rpc_error(e)
@@ -352,7 +408,7 @@ class Client:
                 print(
                     f"appointment_id={resp.appointment_id}\n"
                     f"student={resp.student_username} tutor={resp.tutor_username}\n"
-                    f"{resp.start_time} -> {resp.end_time} status={resp.status}\n"
+                    f"{fmt_range(resp.start_time, resp.end_time)} status={resp.status}\n"
                     f"slot_id={getattr(resp, 'slot_id', 0)}"
                 )
         except grpc.RpcError as e:
@@ -362,7 +418,7 @@ class Client:
         print_header("Cancel Appointment")
         appointment_id = prompt("Appointment ID: ")
         try:
-            resp = self.modify.CancelAppointment(modify_pb2.CancelAppointmentRequest(appointment_id=appointment_id))
+            resp = self.modify.CancelAppointment(modify_pb2.CancelAppointmentRequest(token=self.session.token, appointment_id=appointment_id))
             print(resp.message)
             if resp.appointment_id:
                 print(f"status={resp.status} appointment_id={resp.appointment_id}")
@@ -376,6 +432,7 @@ class Client:
         new_slot_id = prompt_int("New slot ID: ")
 
         req = modify_pb2.ChangeAppointmentRequest(
+            token=self.session.token,
             appointment_id=appointment_id,
             old_slot_id=old_slot_id,
             new_slot_id=new_slot_id,
@@ -384,11 +441,11 @@ class Client:
             resp = self.modify.ChangeAppointment(req)
             print(resp.message)
 
-            if resp.appointment_id:
+            if getattr(resp, "status", "") == "CHANGED":
                 print(
                     f"appointment_id={resp.appointment_id}\n"
                     f"student={resp.student_username} tutor={resp.tutor_username}\n"
-                    f"{resp.start_time} -> {resp.end_time} status={resp.status}\n"
+                    f"{fmt_range(resp.start_time, resp.end_time)} status={resp.status}\n"
                     f"slot_id={getattr(resp, 'slot_id', 0)}"
                 )
         except grpc.RpcError as e:
@@ -407,7 +464,20 @@ class Client:
         rating_val = prompt_int("Rating (1-5): ")
         comment = prompt("Comment (optional): ")
         appointment_id = prompt("Appointment ID (optional, press enter to skip): ")
-        timestamp = prompt("Timestamp ISO-8601 (optional, press enter to skip): ")
+
+        timestamp_input = prompt(
+            "Timestamp (optional, ex: 2026-02-25 12:30 PM or 2026-02-25T12:30:00, press enter to skip): "
+        )
+
+        if timestamp_input:
+            try:
+                timestamp = to_iso(timestamp_input)
+            except ValueError:
+                print("Invalid datetime format for timestamp.")
+                print("Use: 2026-02-25 12:30 PM  OR  2026-02-25T12:30:00")
+                return
+        else:
+            timestamp = ""
 
         req = rating_pb2.SubmitRatingRequest(
             student_username=self.session.username,
@@ -415,7 +485,7 @@ class Client:
             appointment_id=appointment_id if appointment_id else "",
             rating=rating_val,
             comment=comment if comment else "",
-            timestamp=timestamp if timestamp else "",
+            timestamp=timestamp,
         )
         try:
             resp = self.rating.SubmitRating(req)
@@ -564,7 +634,7 @@ class Client:
                             print("(none)")
                         else:
                             for s in resp.slot:
-                                print(f"[{s.id}] {s.start_time} -> {s.end_time} booked={s.is_booked}")
+                                print(f"[{s.id}] {fmt_range(s.start_time, s.end_time)} booked={s.is_booked}")
                     except grpc.RpcError as e:
                         show_rpc_error(e)
                 else:

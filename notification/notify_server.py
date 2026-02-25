@@ -4,6 +4,8 @@ from email.message import EmailMessage
 from concurrent import futures
 import grpc
 import sys
+from datetime import datetime  
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import notification_pb2
@@ -15,7 +17,21 @@ SMTP_USER = os.environ.get("SMTP_USER", "")
 SMTP_PASS = os.environ.get("SMTP_PASS", "")
 SMTP_FROM = os.environ.get("SMTP_FROM", "no-reply@tutoring.local")
 USE_TLS = os.environ.get("SMTP_TLS", "0") == "1"
+USER_FRIENDLY_FMT = "%Y-%m-%d %I:%M %p"  # e.g. 2026-02-25 12:30 PM
 
+def fmt_time(s: str) -> str:
+    """
+    Convert ISO datetime string to user-friendly format for display.
+    If parsing fails, return original string (safe fallback).
+    """
+    if not s:
+        return ""
+    try:
+        dt = datetime.fromisoformat(s)
+        return dt.strftime(USER_FRIENDLY_FMT)
+    except ValueError:
+        return s
+    
 def send_email(to_addr: str, subject: str, body: str) -> None:
     msg = EmailMessage()
     msg["From"] = SMTP_FROM
@@ -39,7 +55,7 @@ class Notifier(notification_pb2_grpc.NotifierServicer):
                 f"Hi {request.user_username},\n\n"
                 f"Your appointment is confirmed.\n"
                 f"Tutor: {request.tutor_username}\n"
-                f"When: {request.start_time} to {request.end_time}\n"
+                f"When: {fmt_time(request.start_time)} to {fmt_time(request.end_time)}\n"
                 f"Appointment ID: {request.appointment_id}\n\n"
                 f"Thanks!"
             )
@@ -47,7 +63,7 @@ class Notifier(notification_pb2_grpc.NotifierServicer):
                 f"Hi {request.tutor_username},\n\n"
                 f"You have a new booking.\n"
                 f"Student: {request.user_username}\n"
-                f"When: {request.start_time} to {request.end_time}\n"
+                f"When: {fmt_time(request.start_time)} to {fmt_time(request.end_time)}\n"
                 f"Appointment ID: {request.appointment_id}\n\n"
                 f"Thanks!"
             )
@@ -68,7 +84,7 @@ class Notifier(notification_pb2_grpc.NotifierServicer):
                 f"Appointment cancelled.\n"
                 f"Student: {request.user_username}\n"
                 f"Tutor: {request.tutor_username}\n"
-                f"When: {request.start_time} to {request.end_time}\n"
+                f"When: {fmt_time(request.start_time)} to {fmt_time(request.end_time)}\n"
                 f"Appointment ID: {request.appointment_id}\n"
                 f"Cancelled by: {who}\n"
             )

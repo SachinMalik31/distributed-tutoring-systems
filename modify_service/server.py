@@ -49,8 +49,6 @@ def init_db() -> None:
     
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
-    conn.execute("DROP INDEX IF EXISTS uniq_tutor_time_active;")
-    conn.execute("DROP TABLE IF EXISTS appointments;")
     conn.execute(
         """
         CREATE TABLE IF NOT EXISTS appointments (
@@ -130,6 +128,22 @@ class ModifySvc(modify_pb2_grpc.ModifyAppointmentServiceServicer):
 
             if not row:
                 return modify_pb2.AppointmentResponse(message="Appointment not found. Please check the appointment ID.")
+            
+            resp = self.auth_stub.ValidateToken(authentication_pb2.ValidateTokenRequest(token=request.token))
+
+
+            if resp.username != row[1]:
+                return modify_pb2.AppointmentResponse(
+                    appointment_id=row[0],
+                    student_username=row[1],
+                    tutor_username=row[2],
+                    start_time=row[3],
+                    end_time=row[4],
+                    status=row[5],
+                    slot_id=row[6],
+                    message="Cannot cancel appointment. You did not make this appointment.",
+                )
+
 
             if row[5] == "CANCELED":
                 return modify_pb2.AppointmentResponse(
@@ -204,6 +218,16 @@ class ModifySvc(modify_pb2_grpc.ModifyAppointmentServiceServicer):
 
             if not row:
                 return modify_pb2.AppointmentResponse(message="Appointment not found. Please check the appointment ID.")
+
+            resp = self.auth_stub.ValidateToken(authentication_pb2.ValidateTokenRequest(token=request.token))
+
+
+            if resp.username != row[1]:
+                return modify_pb2.AppointmentResponse(
+                    appointment_id=row[0],
+                    status="CANCELED",
+                    message="Cannot change appointment. You did not make this appointment.",
+                )
 
             if row[5] == "CANCELED":
                 return modify_pb2.AppointmentResponse(
